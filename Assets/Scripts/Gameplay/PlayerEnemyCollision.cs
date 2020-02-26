@@ -2,6 +2,7 @@ using System.Numerics;
 using Platformer.Core;
 using Platformer.Mechanics;
 using Platformer.Model;
+using UnityEngine;
 using static Platformer.Core.Simulation;
 using Vector2 = UnityEngine.Vector2;
 
@@ -18,11 +19,6 @@ namespace Platformer.Gameplay
         public PlayerController player;
 
         PlatformerModel model = GetModel<PlatformerModel>();
-
-        public override bool Precondition()
-        {
-            return player.tangible;
-        }
 
         public override void Execute()
         {
@@ -51,15 +47,11 @@ namespace Platformer.Gameplay
             }
             else
             {
-                enemy._collider.enabled = false;
-
-                var xKnockback = (player.Bounds.center.x >= enemy.Bounds.max.x) ? 40 : 40;
-                var yKnockback = 5;
-
                 var ev = Schedule<PlayerHurt>();
                 ev.player = player;
-                ev.damage = 0;
-                ev.knockbackDirection = new Vector2(xKnockback, yKnockback);
+                ev.damage = 1;
+
+                player.Recoil(player.Bounds.center.x <= enemy.Bounds.center.x);
             }
         }
     }

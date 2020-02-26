@@ -1,10 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System;
 using Platformer.Gameplay;
-using static Platformer.Core.Simulation;
 using Platformer.Model;
-using Platformer.Core;
+using UnityEngine;
+using static Platformer.Core.Simulation;
 
 namespace Platformer.Mechanics
 {
@@ -48,15 +46,17 @@ namespace Platformer.Mechanics
         public bool controlEnabled = true;
 
         bool jump;
+        bool recoil, recoilLeft, recoilRight;
+        
+        float timeUntilControlIsRegained = 0.0f;
+        
         Vector2 move;
         SpriteRenderer spriteRenderer;
         internal Animator animator;
-        readonly PlatformerModel model = Simulation.GetModel<PlatformerModel>();
+        readonly PlatformerModel model = GetModel<PlatformerModel>();
 
         public Bounds Bounds => collider2d.bounds;
 
-        public bool tangible = true;
-        
         void Awake()
         {
             health = GetComponent<Health>();
@@ -66,42 +66,97 @@ namespace Platformer.Mechanics
             animator = GetComponent<Animator>();
         }
 
+        protected override void FixedUpdate()
+        {
+            timeUntilControlIsRegained -= Time.deltaTime;
+            if (timeUntilControlIsRegained <= 0.0f)
+            {
+                recoilLeft = false;
+                recoilRight = false;
+            }
+
+            timeUntilControlIsRegained = Math.Max(timeUntilControlIsRegained, 0f);
+            
+            base.FixedUpdate();
+        }
+
+        public void Recoil(bool left)
+        {
+            if (left)
+            {
+                recoilLeft = true;
+            }
+            else
+            {
+                recoilRight = true;
+            }
+        }
+        
+        private void GetPlayerInput()
+        {
+            move.x = Input.GetAxis("Horizontal");
+            
+            if (jumpState == JumpState.Grounded && Input.GetButtonDown("Jump"))
+                jumpState = JumpState.PrepareToJump;
+            
+            else if (Input.GetButtonUp("Jump"))
+            {
+                stopJump = true;
+                Schedule<PlayerStopJump>().player = this;
+            }
+        }
+
+        private void GetNonPlayerControlledMovement()
+        {
+            if (recoilLeft)
+            {
+                move.x = -1;
+            }
+
+            if (recoilRight)
+            {
+                move.x = 1;
+            }
+        }
+        
         protected override void Update()
         {
             if (controlEnabled)
             {
-                move.x = Input.GetAxis("Horizontal");
-                if (jumpState == JumpState.Grounded && Input.GetButtonDown("Jump"))
-                    jumpState = JumpState.PrepareToJump;
-                else if (Input.GetButtonUp("Jump"))
-                {
-                    stopJump = true;
-                    Schedule<PlayerStopJump>().player = this;
-                }
+                GetPlayerInput();
+                GetNonPlayerControlledMovement();
+
+                Debug.Log(move.x);
             }
             else
             {
-                if (jumpState != JumpState.Recoil)
-                {
-                    move.x = 0;
-                }
+                move.x = 0;
             }
             
-            UpdateJumpState();
+            UpdatePlayerState();
             base.Update();
         }
 
-        void UpdateJumpState()
+        void UpdatePlayerState()
         {
             jump = false;
+            recoil = false;
+            
             switch (jumpState)
             {
+                case JumpState.PrepareToRecoil:
+                    jumpState = JumpState.Recoil;
+                    recoil = true;
+                    break;
                 case JumpState.Recoil:
                     if (IsGrounded)
                     {
-                        Schedule<PlayerLanded>().player = this;
-                        jumpState = JumpState.Landed;
+                        jumpState = JumpState.RecoilEnded;
                     }
+                    break;
+                case JumpState.RecoilEnded:
+                    controlEnabled = true;
+                    jumpState = JumpState.Grounded;
                     break;
                 case JumpState.PrepareToJump:
                     jumpState = JumpState.Jumping;
@@ -118,11 +173,11 @@ namespace Platformer.Mechanics
                 case JumpState.InFlight:
                     if (IsGrounded)
                     {
-                        Schedule<PlayerLanded>().player = this;
                         jumpState = JumpState.Landed;
                     }
                     break;
                 case JumpState.Landed:
+                    Schedule<PlayerLanded>().player = this;
                     jumpState = JumpState.Grounded;
                     break;
             }
@@ -130,6 +185,13 @@ namespace Platformer.Mechanics
 
         protected override void ComputeVelocity()
         {
+            if (recoil)
+            {
+                timeUntilControlIsRegained = 0.6f;
+                velocity.y = 3;
+                recoil = false;
+            }
+            
             if (jump && IsGrounded)
             {
                 velocity.y = jumpTakeOffSpeed * model.jumpModifier;
@@ -144,15 +206,28 @@ namespace Platformer.Mechanics
                 }
             }
 
+            targetVelocity = move * maxSpeed;
+            
+            InformAnimator();
+        }
+
+        /// <summary>
+        /// Pass details about the current players movement so that we can animate accordingly.
+        /// </summary>
+        private void InformAnimator()
+        {
             if (move.x > 0.01f)
                 spriteRenderer.flipX = false;
             else if (move.x < -0.01f)
                 spriteRenderer.flipX = true;
 
+            if (recoilLeft)
+                spriteRenderer.flipX = false;
+            if (recoilRight)
+                spriteRenderer.flipX = true;
+
             animator.SetBool("grounded", IsGrounded);
             animator.SetFloat("velocityX", Mathf.Abs(velocity.x) / maxSpeed);
-
-            targetVelocity = move * maxSpeed;
         }
 
         public enum JumpState
@@ -161,7 +236,9 @@ namespace Platformer.Mechanics
             PrepareToJump,
             Jumping,
             InFlight,
+            PrepareToRecoil,
             Recoil,
+            RecoilEnded,
             Landed
         }
 

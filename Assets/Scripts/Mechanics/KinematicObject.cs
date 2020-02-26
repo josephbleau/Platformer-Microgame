@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace Platformer.Mechanics
 {
@@ -53,9 +54,10 @@ namespace Platformer.Mechanics
         /// Bounce the objects velocity in a direction.
         /// </summary>
         /// <param name="dir"></param>
-        public void Bounce(Vector2 dir)
+        public virtual void Bounce(Vector2 dir)
         {
             velocity.y = dir.y;
+            velocity.x = dir.x;
             targetVelocity.x = dir.x;
         }
 
@@ -90,7 +92,6 @@ namespace Platformer.Mechanics
 
         protected virtual void Update()
         {
-            targetVelocity = Vector2.zero;
             ComputeVelocity();
         }
 
@@ -108,21 +109,13 @@ namespace Platformer.Mechanics
                 velocity += Physics2D.gravity * Time.deltaTime;
 
             velocity.x = targetVelocity.x;
-
             IsGrounded = false;
 
+            var moveAlongGround = new Vector2(groundNormal.y, -groundNormal.x);
             var deltaPosition = velocity * Time.deltaTime;
 
-            var moveAlongGround = new Vector2(groundNormal.y, -groundNormal.x);
-
-            var move = moveAlongGround * deltaPosition.x;
-
-            PerformMovement(move, false);
-
-            move = Vector2.up * deltaPosition.y;
-
-            PerformMovement(move, true);
-
+            PerformMovement(moveAlongGround * deltaPosition.x, false);
+            PerformMovement(Vector2.up * deltaPosition.y, true);
         }
 
         void PerformMovement(Vector2 move, bool yMovement)
@@ -141,6 +134,7 @@ namespace Platformer.Mechanics
                     if (currentNormal.y > minGroundNormalY)
                     {
                         IsGrounded = true;
+                        
                         // if moving up, change the groundNormal to new surface normal.
                         if (yMovement)
                         {
@@ -148,6 +142,7 @@ namespace Platformer.Mechanics
                             currentNormal.x = 0;
                         }
                     }
+                    
                     if (IsGrounded)
                     {
                         //how much of our velocity aligns with surface normal?
@@ -158,18 +153,14 @@ namespace Platformer.Mechanics
                             velocity = velocity - projection * currentNormal;
                         }
                     }
-                    else
-                    {
-                        //We are airborne, but hit something, so cancel vertical up and horizontal velocity.
-                        velocity.y = Mathf.Min(velocity.y, 0);
-                    }
+
                     //remove shellDistance from actual move distance.
                     var modifiedDistance = hitBuffer[i].distance - shellRadius;
                     distance = modifiedDistance < distance ? modifiedDistance : distance;
                 }
             }
+            
             body.position = body.position + move.normalized * distance;
         }
-
     }
 }
