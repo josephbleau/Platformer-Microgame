@@ -22,7 +22,8 @@ namespace Platformer.Gameplay
             
             if (player.audioSource && player.respawnAudio)
                 player.audioSource.PlayOneShot(player.respawnAudio);
-            
+
+            player.collider2d.enabled = true;
             player.Teleport(model.spawnPoint.transform.position);
             player.jumpState = PlayerController.JumpState.Grounded;
             player.animator.SetBool("dead", false);

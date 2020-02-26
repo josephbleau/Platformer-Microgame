@@ -13,10 +13,6 @@ namespace Platformer.Gameplay
 
         public override void Execute()
         {
-            if (player.previousJumpState == PlayerController.JumpState.Recoil)
-            {
-                player.controlEnabled = true;
-            }
         }
     }
 }

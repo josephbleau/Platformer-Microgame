@@ -12,6 +12,8 @@ namespace Platformer.Gameplay
         
         public override void Execute()
         {
+            player.audioSource.PlayOneShot(player.ouchAudio);
+
             if (playerRecoil)
             {
                 player.jumpState = PlayerController.JumpState.PrepareToRecoil;

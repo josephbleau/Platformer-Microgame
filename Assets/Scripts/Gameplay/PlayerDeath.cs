@@ -24,11 +24,12 @@ namespace Platformer.Gameplay
             
             model.virtualCamera.m_Follow = null;
             model.virtualCamera.m_LookAt = null;
-            // player.collider.enabled = false;
             player.controlEnabled = false;
+            player.collider2d.enabled = false;
 
             if (player.audioSource && player.ouchAudio)
                 player.audioSource.PlayOneShot(player.ouchAudio);
+            
             player.animator.SetTrigger("hurt");
             player.animator.SetBool("dead", true);
             Simulation.Schedule<PlayerSpawn>(2);

@@ -45,7 +45,7 @@ namespace Platformer.Mechanics
         /// Bounce the object's vertical velocity.
         /// </summary>
         /// <param name="value"></param>
-        public void Bounce(float value)
+        public virtual void Bounce(float value)
         {
             velocity.y = value;
         }

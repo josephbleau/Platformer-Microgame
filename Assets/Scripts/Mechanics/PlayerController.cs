@@ -69,8 +69,17 @@ namespace Platformer.Mechanics
         protected override void FixedUpdate()
         {
             timeUntilControlIsRegained -= Time.deltaTime;
+            
             if (timeUntilControlIsRegained <= 0.0f)
             {
+                if (recoilLeft || recoilRight)
+                {
+                    if (health.IsAlive)
+                    {
+                        animator.Play("Player-Idle");
+                    }
+                }
+
                 recoilLeft = false;
                 recoilRight = false;
             }
@@ -78,6 +87,16 @@ namespace Platformer.Mechanics
             timeUntilControlIsRegained = Math.Max(timeUntilControlIsRegained, 0f);
             
             base.FixedUpdate();
+        }
+
+        public override void Bounce(Vector2 dir)
+        {
+            if (controlEnabled) base.Bounce(dir);
+        }
+
+        public override void Bounce(float value)
+        {
+            if (controlEnabled) base.Bounce(value);
         }
 
         public void Recoil(bool left)
@@ -94,15 +113,18 @@ namespace Platformer.Mechanics
         
         private void GetPlayerInput()
         {
-            move.x = Input.GetAxis("Horizontal");
-            
-            if (jumpState == JumpState.Grounded && Input.GetButtonDown("Jump"))
-                jumpState = JumpState.PrepareToJump;
-            
-            else if (Input.GetButtonUp("Jump"))
+            if (controlEnabled)
             {
-                stopJump = true;
-                Schedule<PlayerStopJump>().player = this;
+                move.x = Input.GetAxis("Horizontal");
+
+                if (jumpState == JumpState.Grounded && Input.GetButtonDown("Jump"))
+                    jumpState = JumpState.PrepareToJump;
+
+                else if (Input.GetButtonUp("Jump"))
+                {
+                    stopJump = true;
+                    Schedule<PlayerStopJump>().player = this;
+                }
             }
         }
 
@@ -125,8 +147,6 @@ namespace Platformer.Mechanics
             {
                 GetPlayerInput();
                 GetNonPlayerControlledMovement();
-
-                Debug.Log(move.x);
             }
             else
             {
@@ -155,7 +175,6 @@ namespace Platformer.Mechanics
                     }
                     break;
                 case JumpState.RecoilEnded:
-                    controlEnabled = true;
                     jumpState = JumpState.Grounded;
                     break;
                 case JumpState.PrepareToJump:
@@ -228,6 +247,7 @@ namespace Platformer.Mechanics
 
             animator.SetBool("grounded", IsGrounded);
             animator.SetFloat("velocityX", Mathf.Abs(velocity.x) / maxSpeed);
+            animator.SetBool("hurt", (recoilLeft || recoilRight));
         }
 
         public enum JumpState
