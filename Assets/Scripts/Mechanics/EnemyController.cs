@@ -22,7 +22,8 @@ namespace Platformer.Mechanics
         SpriteRenderer spriteRenderer;
 
         public Health health;
-
+        public GameObject ftcPrefab;
+        
         public Bounds Bounds => _collider.bounds;
 
         void Awake()

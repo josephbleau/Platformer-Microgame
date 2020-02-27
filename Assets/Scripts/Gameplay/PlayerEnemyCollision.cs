@@ -23,13 +23,16 @@ namespace Platformer.Gameplay
         public override void Execute()
         {
             var willHurtEnemy = player.Bounds.center.y >= enemy.Bounds.max.y;
-
+            
             if (willHurtEnemy)
             {
                 var enemyHealth = enemy.GetComponent<Health>();
+
                 if (enemyHealth != null)
                 {
                     enemyHealth.Decrement();
+                    Schedule<EnemyHurt>().enemy = enemy;
+
                     if (!enemyHealth.IsAlive)
                     {
                         player.Bounce(7);

@@ -177,6 +177,8 @@ MonoBehaviour:
   path: {fileID: 0}
   ouch: {fileID: 8300000, guid: b7f741588644cd64bbee6387cb54a96d, type: 3}
   health: {fileID: 0}
+  ftcPrefab: {fileID: 4598773060150609831, guid: 5cbfcf8d9ff0e7147a20c60e3f8d7be5,
+    type: 3}
 --- !u!82 &5843668731025413174
 AudioSource:
   m_ObjectHideFlags: 0
